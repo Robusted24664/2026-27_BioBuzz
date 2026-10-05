@@ -1,0 +1,114 @@
+/* Copyright (c) 2017 FIRST. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted (subject to the limitations in the disclaimer below) provided that
+ * the following conditions are met:
+ *
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of FIRST nor the names of its contributors may be used to endorse or
+ * promote products derived from this software without specific prior written permission.
+ *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
+ * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
+
+@TeleOp(name="MomentumTeleOp", group="Linear OpMode")
+
+public class MomentumTeleOp extends LinearOpMode {
+
+    // Declare OpMode members.
+    private ElapsedTime runtime = new ElapsedTime();
+    private DcMotor frontRight = null;
+    private DcMotor frontLeft = null;
+    private DcMotor backRight = null;
+    private DcMotor backLeft = null;
+
+
+    @Override
+    public void runOpMode() {
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        // Initialize the hardware variables. Note that the strings used here as parameters
+        // to 'get' must correspond to the names assigned during the robot configuration
+        // step (using the FTC Robot Controller app on the phone).
+        frontRight  = hardwareMap.get(DcMotor.class, "frontRight");
+        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
+        backRight = hardwareMap.get(DcMotor.class, "backRight");
+        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
+
+
+        // // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
+        // // Pushing the left stick forward MUST make robot go forward. So adjust these two lines based on your first test drive.
+        // // Note: The settings here assume direct drive on left and right wheels.  Gear Reduction or 90 Deg drives may require direction flips
+        frontLeft.setDirection(DcMotor.Direction.REVERSE);
+        backLeft.setDirection(DcMotor.Direction.REVERSE);
+        frontRight.setDirection(DcMotor.Direction.FORWARD);
+        backRight.setDirection(DcMotor.Direction.FORWARD);
+        
+        // Momentum driving: Initialize drive variables
+        double drive = 0;
+        double turn = 0;
+        double strafe = 0;
+
+        // Wait for the game to start (driver presses START)
+        waitForStart();
+        runtime.reset();
+
+        // run until the end of the match (driver presses STOP)
+        while (opModeIsActive()) {
+            // Momentum driving: decay multiplier
+            double decay = 0.9;
+            double deltaScale = 0.1;
+
+            // Momemntum driving: Set the variables for the change in each
+            double deltaDrive = -gamepad1.left_stick_y;
+            double deltaTurn  =  -0.75 * gamepad1.right_stick_x;
+            double deltaStrafe = 0.9 * gamepad1.left_stick_x;
+            
+            // Momentum driving: multiply each variable by the decay multiplier, then add the scaled delta
+            drive = drive * decay + deltaDrive * deltaScale;
+            turn = turn * decay + deltaTurn * deltaScale;
+            strafe = strafe * decay + deltaStrafe * deltaScale;
+
+            // Send calculated power to wheels
+            frontRight.setPower(drive + turn - strafe);
+            frontLeft.setPower(drive - turn + strafe);
+            backRight.setPower(drive + turn + strafe);
+            backLeft.setPower(drive - turn - strafe);
+
+            // Show the elapsed game time and wheel power.
+            telemetry.addData("Status", "Run Time: " + runtime.toString());
+            // telemetry.addData("Motors", "left (%.2f), right (%.2f)", leftPower, rightPower);
+            telemetry.update();
+        }
+        frontRight.setPower(0);
+        frontLeft.setPower(0);
+        backRight.setPower(0);
+        backLeft.setPower(0);
+    }
+}
